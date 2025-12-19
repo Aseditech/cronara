@@ -1,6 +1,9 @@
 "use client";
 
 import { Navbar } from "@/components/Navbar";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 type SettingsFormData = {
@@ -10,6 +13,11 @@ type SettingsFormData = {
 };
 
 export default function Settings() {
+  const router = useRouter();
+  const [loadingBusiness, setLoadingBusiness] = useState(true);
+  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<number | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -23,12 +31,108 @@ export default function Settings() {
     },
   });
 
-  const onSubmit = async (data: SettingsFormData) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
+  useEffect(() => {
+    const fetchBusiness = async () => {
+      const supabase = getSupabaseClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    console.log("Datos del formulario", data);
+      if (userError || !user) {
+        router.replace("/login");
+        return;
+      }
+
+      const { data: userRow, error: userRowError } = await supabase
+        .from("user")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (userRowError || !userRow) {
+        setServerError("No pudimos obtener la información del usuario.");
+        setLoadingBusiness(false);
+        return;
+      }
+
+      setOwnerId(userRow.id);
+
+      const { data, error, status } = await supabase
+        .from("business")
+        .select("id, name, description, logo_url")
+        .eq("owner_id", userRow.id)
+        .maybeSingle();
+
+      if (error && status !== 406) {
+        setServerError("No pudimos obtener los datos del negocio.");
+      }
+
+      if (data) {
+        setBusinessId(data.id);
+        reset({
+          businessName: data.name ?? "",
+          description: data.description ?? "",
+          logoUrl: data.logo_url ?? "",
+        });
+      }
+
+      setLoadingBusiness(false);
+    };
+
+    fetchBusiness();
+  }, [reset, router]);
+
+  const onSubmit = async (data: SettingsFormData) => {
+    if (!ownerId) {
+      setServerError("No se detectó un usuario autenticado.");
+      return;
+    }
+
+    setServerError(null);
+    const supabase = getSupabaseClient();
+    const payload = {
+      name: data.businessName,
+      description: data.description,
+      logo_url: data.logoUrl,
+      owner_id: ownerId,
+    };
+
+    if (businessId) {
+      const { error } = await supabase
+        .from("business")
+        .update(payload)
+        .eq("id", businessId);
+
+      if (error) {
+        setServerError(error.message);
+        return;
+      }
+    } else {
+      const { data: newBusiness, error } = await supabase
+        .from("business")
+        .insert(payload)
+        .select("id")
+        .single();
+
+      if (error) {
+        setServerError(error.message);
+        return;
+      }
+
+      setBusinessId(newBusiness.id);
+    }
+
     reset(data);
   };
+
+  if (loadingBusiness) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <p className="text-sm text-zinc-600">Cargando datos del negocio...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col bg-zinc-50">
@@ -81,17 +185,16 @@ export default function Settings() {
               className="rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
               placeholder="https://tu-negocio.com/logo.png"
               {...register("logoUrl", {
-                required: "Incluye un enlace a tu logo",
-                pattern: {
-                  value: /^(https?:\/\/).+/i,
-                  message: "Debe ser una URL válida",
-                },
+                validate: (value) =>
+                  !value || /^(https?:\/\/).+/i.test(value) || "Debe ser una URL válida",
               })}
             />
             {errors.logoUrl && (
               <p className="text-xs text-red-500">{errors.logoUrl.message}</p>
             )}
           </div>
+
+          {serverError && <p className="text-sm text-red-500">{serverError}</p>}
 
           <button
             type="submit"

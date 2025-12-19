@@ -8,22 +8,25 @@ import { Navbar } from "@/components/Navbar";
 
 interface ProfileFormData {
   fullName: string;
-  avatarUrl: string;
+  email: string;
+  phone: string;
 }
 
 export default function ProfilePage() {
   const router = useRouter();
   const [loadingUser, setLoadingUser] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ProfileFormData>({
     defaultValues: {
       fullName: "",
-      avatarUrl: "",
+      email: "",
+      phone: "",
     },
   });
 
@@ -36,14 +39,24 @@ export default function ProfilePage() {
       } = await supabase.auth.getUser();
 
       if (error || !user) {
-        setAuthError(error?.message ?? "Inicia sesión para ver tu perfil");
-        router.push("/login");
+        setServerError(error?.message ?? "Inicia sesión para ver tu perfil");
+        router.replace("/login");
+        return;
+      }
+
+      const response = await fetch(`/api/profile?authUserId=${user.id}`);
+      const json = await response.json();
+
+      if (!response.ok) {
+        setServerError(json?.error ?? "No pudimos cargar tu perfil desde la base de datos.");
+        setLoadingUser(false);
         return;
       }
 
       reset({
-        fullName: (user.user_metadata?.full_name as string) ?? "",
-        avatarUrl: (user.user_metadata?.avatar_url as string) ?? "",
+        fullName: json.profile?.name ?? "",
+        email: json.profile?.email ?? "",
+        phone: json.profile?.phone ?? "",
       });
       setLoadingUser(false);
     };
@@ -52,20 +65,40 @@ export default function ProfilePage() {
   }, [reset, router]);
 
   const onSubmit = async (data: ProfileFormData) => {
-    setAuthError(null);
+    setServerError(null);
+    setSuccessMessage(null);
     const supabase = getSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const { error } = await supabase.auth.updateUser({
-      data: {
-        full_name: data.fullName,
-        avatar_url: data.avatarUrl,
-      },
-    });
-
-    if (error) {
-      setAuthError(error.message);
+    if (!user) {
+      setServerError("No hay sesión activa.");
+      router.replace("/login");
       return;
     }
+
+    const response = await fetch("/api/profile", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        authUserId: user.id,
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+      }),
+    });
+
+    if (!response.ok) {
+      const json = await response.json();
+      setServerError(json?.error ?? "No pudimos actualizar tu perfil.");
+      return;
+    }
+
+    setSuccessMessage("Perfil actualizado correctamente.");
+    reset(data);
   };
 
   if (loadingUser) {
@@ -77,59 +110,80 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50">
+    <div className="flex min-h-screen flex-col bg-zinc-50">
       <Navbar />
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-sm">
+      <div className="mx-auto mt-10 w-full max-w-3xl rounded-2xl bg-white p-8 shadow-sm">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-zinc-900">Perfil</h1>
-          <p className="text-sm text-zinc-500">
-            Actualiza tu información visible para tu equipo.
-          </p>
+          <p className="text-sm uppercase text-blue-600">Tu información</p>
+          <h1 className="text-3xl font-semibold text-zinc-900">Perfil general</h1>
+          <p className="text-sm text-zinc-500">Mantén tus datos al día para mejorar la comunicación.</p>
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-medium text-zinc-700">
-              Nombre completo
-            </label>
-            <input
-              id="fullName"
-              type="text"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-              placeholder="María López"
-              {...register("fullName", { required: "El nombre es obligatorio" })}
-            />
-            {errors.fullName && (
-              <p className="text-xs text-red-500">{errors.fullName.message}</p>
-            )}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="fullName" className="text-sm font-medium text-zinc-700">
+                Nombre completo
+              </label>
+              <input
+                id="fullName"
+                type="text"
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                placeholder="María López"
+                {...register("fullName", { required: "El nombre es obligatorio" })}
+              />
+              {errors.fullName && (
+                <p className="text-xs text-red-500">{errors.fullName.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-zinc-700">
+                Correo electrónico
+              </label>
+              <input
+                id="email"
+                type="email"
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                placeholder="correo@ejemplo.com"
+                {...register("email", {
+                  required: "El correo es obligatorio",
+                  pattern: {
+                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: "Correo no válido",
+                  },
+                })}
+              />
+              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="avatarUrl" className="text-sm font-medium text-zinc-700">
-              Foto (URL)
+            <label htmlFor="fullName" className="text-sm font-medium text-zinc-700">
+              Teléfono
             </label>
             <input
-              id="avatarUrl"
-              type="url"
+              id="phone"
+              type="tel"
               className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-              placeholder="https://tu-dominio.com/avatar.png"
-              {...register("avatarUrl", {
+              placeholder="55 1234 5678"
+              {...register("phone", {
+                required: "El teléfono es obligatorio",
                 pattern: {
-                  value: /^(https?:\/\/).+/i,
-                  message: "Proporciona una URL válida",
+                  value: /^[0-9+\-\s()]{7,20}$/,
+                  message: "Teléfono no válido",
                 },
               })}
             />
-            {errors.avatarUrl && (
-              <p className="text-xs text-red-500">{errors.avatarUrl.message}</p>
-            )}
+            {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
           </div>
 
-          {authError && <p className="text-sm text-red-500">{authError}</p>}
+          {serverError && <p className="text-sm text-red-500">{serverError}</p>}
+          {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isDirty}
             className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
             {isSubmitting ? "Guardando..." : "Guardar cambios"}

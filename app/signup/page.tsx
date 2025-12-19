@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { toast } from "react-toastify";
 
 type SignupFormData = {
   fullName: string;
@@ -48,7 +49,11 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/login");
+    toast.info("Revisa tu correo para verificar tu cuenta antes de continuar", {
+      position: "top-center",
+    });
+
+    router.push("/onboarding");
   };
 
   return (
@@ -64,7 +69,7 @@ export default function SignupPage() {
             <input
               id="fullName"
               type="text"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-900 focus:border-blue-500 focus:outline-none"
               placeholder="John Doe"
               {...register("fullName", { required: "Ingresa tu nombre" })}
             />
@@ -80,7 +85,7 @@ export default function SignupPage() {
             <input
               id="email"
               type="email"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-900 focus:border-blue-500 focus:outline-none"
               placeholder="johndoe@email.com"
               {...register("email", {
                 required: "Ingresa tu correo",
@@ -102,7 +107,7 @@ export default function SignupPage() {
             <input
               id="password"
               type="password"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-900 focus:border-blue-500 focus:outline-none"
               placeholder="********"
               {...register("password", {
                 required: "Ingresa una contraseña",
@@ -121,7 +126,7 @@ export default function SignupPage() {
             <input
               id="confirmPassword"
               type="password"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-900 focus:border-blue-500 focus:outline-none"
               placeholder="********"
               {...register("confirmPassword", {
                 required: "Confirma tu contraseña",

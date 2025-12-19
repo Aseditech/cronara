@@ -1,6 +1,8 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import { useState } from "react";
 
 type StaffFormData = {
   fullName: string;
@@ -9,11 +11,19 @@ type StaffFormData = {
   phone: string;
 };
 
+type StaffListItem = {
+  id: string;
+  name: string;
+  cargo: string | null;
+};
+
 interface AddStaffFormProps {
   onClose: () => void;
+  businessId: string | null;
+  onStaffAdded?: (member: StaffListItem) => void;
 }
 
-export default function AddStaffForm({ onClose }: AddStaffFormProps) {
+export default function AddStaffForm({ onClose, businessId, onStaffAdded }: AddStaffFormProps) {
   const {
     register,
     handleSubmit,
@@ -28,9 +38,38 @@ export default function AddStaffForm({ onClose }: AddStaffFormProps) {
     },
   });
 
+  const [serverError, setServerError] = useState<string | null>(null);
+
   const onSubmit = async (data: StaffFormData) => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    console.log("Empleado agregado", data);
+    if (!businessId) {
+      setServerError("Debes crear tu negocio antes de agregar personal.");
+      return;
+    }
+
+    setServerError(null);
+    const supabase = getSupabaseClient();
+    const { data: inserted, error } = await supabase
+      .from("staff")
+      .insert({
+        business_id: businessId,
+        name: data.fullName,
+        email: data.email,
+        role: data.role,
+        cargo: data.role,
+        phone: data.phone,
+      })
+      .select("id, name, cargo")
+      .single();
+
+    if (error) {
+      setServerError(error.message);
+      return;
+    }
+
+    if (inserted && onStaffAdded) {
+      onStaffAdded(inserted as StaffListItem);
+    }
+
     reset();
     onClose();
   };
@@ -106,6 +145,8 @@ export default function AddStaffForm({ onClose }: AddStaffFormProps) {
         />
         {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
       </div>
+
+      {serverError && <p className="text-sm text-red-500">{serverError}</p>}
 
       <div className="flex gap-3 pt-2">
         <button

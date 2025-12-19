@@ -28,14 +28,18 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null);
     const supabase = getSupabaseClient();
-    const { error } = await supabase.auth.signInWithPassword(data);
+    const { data: authData, error } = await supabase.auth.signInWithPassword(data);
 
     if (error) {
       setAuthError(error.message);
       return;
     }
 
-    router.push("/dashboard");
+    const hasOnboarded = Boolean(
+      authData?.user?.user_metadata?.onboarding_completed
+    );
+
+    router.push(hasOnboarded ? "/dashboard" : "/onboarding");
   };
 
   return (
@@ -51,7 +55,7 @@ export default function LoginPage() {
             <input
               id="email"
               type="email"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-900 focus:border-blue-500 focus:outline-none"
               placeholder="johndoe@email.com"
               {...register("email", {
                 required: "Ingresa tu correo",
@@ -73,7 +77,7 @@ export default function LoginPage() {
             <input
               id="password"
               type="password"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-900 focus:border-blue-500 focus:outline-none"
               placeholder="********"
               {...register("password", { required: "Ingresa tu contraseña" })}
             />
