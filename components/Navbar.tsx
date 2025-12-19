@@ -1,6 +1,7 @@
 'use client';
 
 import { Menu, Bell, Settings, User } from 'lucide-react';
+import Link from 'next/link';
 
 export function Navbar() {
   return (
@@ -10,7 +11,9 @@ export function Navbar() {
           <button className="rounded-lg p-2 hover:bg-zinc-100">
             <Menu className="h-5 w-5 text-zinc-600" />
           </button>
-          <h1 className="text-xl font-bold text-zinc-900">Cronara</h1>
+          <Link href="/dashboard">
+            <h1 className="text-xl font-bold text-zinc-900">Cronara</h1>  
+          </Link>
         </div>
         
         <div className="flex items-center gap-4">
@@ -18,10 +21,14 @@ export function Navbar() {
             <Bell className="h-5 w-5 text-zinc-600" />
           </button>
           <button className="rounded-lg p-2 hover:bg-zinc-100">
+            <Link href="/settings">
             <Settings className="h-5 w-5 text-zinc-600" />
+            </Link>
           </button>
           <button className="rounded-lg p-2 hover:bg-zinc-100">
-            <User className="h-5 w-5 text-zinc-600" />
+            <Link href="/profile">
+              <User className="h-5 w-5 text-zinc-600" />
+            </Link>
           </button>
         </div>
       </div>

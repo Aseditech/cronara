@@ -6,17 +6,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma": "prisma"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.87.1",
+    "@prisma/client": "^5.21.1",
     "dayjs": "^1.11.19",
     "lucide-react": "^0.556.0",
     "next": "16.0.8",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "react-hook-form": "^7.68.0"
   },
   "devDependencies": {
+    "prisma": "^5.21.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -1,8 +1,11 @@
 'use client';
 
 import dayjs, { Dayjs } from 'dayjs';
+import 'dayjs/locale/es';
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+dayjs.locale('es');
 
 interface CalendarEvent {
   id: string;
@@ -13,7 +16,7 @@ interface CalendarEvent {
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 const DEFAULT_EVENTS: CalendarEvent[] = [
   {
