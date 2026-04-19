@@ -55,7 +55,7 @@ export default function LoginPage() {
             <input
               id="email"
               type="email"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-900 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none"
               placeholder="johndoe@email.com"
               {...register("email", {
                 required: "Ingresa tu correo",
@@ -77,8 +77,8 @@ export default function LoginPage() {
             <input
               id="password"
               type="password"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-900 focus:border-blue-500 focus:outline-none"
-              placeholder="********"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none"
+              placeholder="***********"
               {...register("password", { required: "Ingresa tu contraseña" })}
             />
             {errors.password && (

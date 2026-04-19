@@ -21,6 +21,7 @@ export function Sidebar() {
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const daysInMonth = currentMonth.daysInMonth();
   const firstDay = currentMonth.startOf('month').day();
@@ -42,29 +43,56 @@ export function Sidebar() {
         return;
       }
 
-      const { data: userRow } = await supabase
+      const { data: userRow, error: userRowError } = await supabase
         .from('user')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (!userRow) {
+      if (userRowError || !userRow?.id) {
+        setLoadError('No pudimos encontrar tu perfil. Completa el onboarding.');
         setLoadingStaff(false);
         return;
       }
 
-      const { data: business } = await supabase
-        .from('business')
+      const { data: ownerRow, error: ownerError } = await supabase
+        .from('owner')
         .select('id')
-        .eq('owner_id', userRow.id)
+        .eq('id', userRow.id)
         .maybeSingle();
 
-      if (!business) {
+      if (ownerError) {
+        setLoadError('No pudimos obtener el registro de dueño.');
         setLoadingStaff(false);
         return;
       }
 
-      setBusinessId(business.id);
+      if (!ownerRow?.id) {
+        setLoadError('Termina el onboarding para registrarte como dueño.');
+        setLoadingStaff(false);
+        return;
+      }
+
+      const { data: business, error: businessError } = await supabase
+        .from('business')
+        .select('id')
+        .eq('owner_id', ownerRow.id)
+        .maybeSingle();
+
+      if (businessError) {
+        setLoadError('No pudimos obtener tu negocio.');
+        setLoadingStaff(false);
+        return;
+      }
+
+      if (!business) {
+        setLoadError('Aún no has registrado un negocio.');
+        setLoadingStaff(false);
+        return;
+      }
+
+      setLoadError(null);
+      setBusinessId(String(business.id));
 
       const { data: staffRows } = await supabase
         .from('staff')
@@ -150,6 +178,9 @@ export function Sidebar() {
             Agregar empleado
           </button>
         </div>
+        {loadError && (
+          <p className="mb-2 text-xs text-red-500">{loadError}</p>
+        )}
         <div className="space-y-2">
           {loadingStaff && (
             <p className="text-xs text-zinc-500">Cargando equipo...</p>
